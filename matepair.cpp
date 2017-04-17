@@ -15,8 +15,8 @@ string r2_external_adapter = "GATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT";
 
 #define SW_MATCH 1
 #define SW_MISMATCH 1
-#define SW_GAP_OPEN 1
-#define SW_GAP_EXTENSION 3
+#define SW_GAP_OPEN 500//dont allowed gapped alignment. just find LCS with mismatches
+#define SW_GAP_EXTENSION 100
 
 //trimadapt penalities
 // #define SW_MATCH 1
@@ -31,7 +31,7 @@ string r2_external_adapter = "GATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT";
 // #define SW_GAP_EXTENSION 2
 
 
-#define DEBUG 0
+#define DEBUG 10
 
 #define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
 
@@ -118,21 +118,20 @@ int sw_match(uint8_t *target,int tlen,uint8_t *query,int qlen,int minoverlap,flo
     int substring_length = r.qe - r.qb < r.te - r.tb? r.qe - r.qb : r.te - r.tb;
 //    diff = (double)(k * opt->sa - r.score) / opt->sb / k; //lh3's diff measure
     float sim = (float)r.score/ ((float)substring_length*sa);
-    sim = min(sim,(float)substring_length /  qlen);
-
-//hacky way to see if we can extend the adapter (no gaps)
-    int hdist=0;
-    int offset=max(0,adapter_start);
-    int count=0;
-    for(int i = offset;i<min(tlen,adapter_end);i++)
+//    sim = min(sim,(float)substring_length /  qlen);
+    
+    if(adapter_start<0)
     {
-	if(target[i]==query[i-adapter_start])
-	{
-	    hdist++;
-	}
-	count++;
+	sim = min(sim,(float)substring_length/adapter_end);
     }
-    sim = max(sim,(float)hdist/(float)count);
+    else  if(adapter_end>=tlen)
+    {
+	sim = min(sim,(float)substring_length/(tlen-adapter_start));
+    }
+    else 
+    {
+	sim = min(sim,(float)substring_length/adapter1.length());
+    }
 
     if(DEBUG>2)
     {
@@ -142,18 +141,21 @@ int sw_match(uint8_t *target,int tlen,uint8_t *query,int qlen,int minoverlap,flo
 	cerr << "(q.tb,q.te) = ("<<r.qb<<","<<r.qe<<")"<<endl;    	
     }
 
-    if( adapter_end<minoverlap || (tlen-adapter_start)<minoverlap )//overlap too small
-    {
-	return tlen;
-    }
     if(r.tb==-1 || r.te==-1) //alignment failed?
     {
 	return tlen;
     }
-    if(sim<min_similarity)
+
+    if(sim<min_similarity) //too divergent
     {
 	return tlen;
     }
+
+    if( adapter_end<minoverlap || (tlen-adapter_start)<minoverlap )//edge overlap too small
+    {
+	return tlen;
+    }
+
     
     return adapter_start;
 }
