@@ -15,8 +15,8 @@ string r2_external_adapter = "GATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT";
 
 #define SW_MATCH 1
 #define SW_MISMATCH 1
-#define SW_GAP_OPEN 500//dont allowed gapped alignment. just find LCS with mismatches
-#define SW_GAP_EXTENSION 100
+#define SW_GAP_OPEN 1
+#define SW_GAP_EXTENSION 3
 
 //trimadapt penalities
 // #define SW_MATCH 1
@@ -31,7 +31,7 @@ string r2_external_adapter = "GATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT";
 // #define SW_GAP_EXTENSION 2
 
 
-#define DEBUG 10
+#define DEBUG 0
 
 #define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
 
@@ -116,48 +116,30 @@ int sw_match(uint8_t *target,int tlen,uint8_t *query,int qlen,int minoverlap,flo
     int adapter_start = r.tb - r.qb;
     int adapter_end = r.te + (qlen-r.qe);
     int substring_length = r.qe - r.qb < r.te - r.tb? r.qe - r.qb : r.te - r.tb;
-//    diff = (double)(k * opt->sa - r.score) / opt->sb / k; //lh3's diff measure
-    float sim = (float)r.score/ ((float)substring_length*sa);
-//    sim = min(sim,(float)substring_length /  qlen);
-    
-    if(adapter_start<0)
-    {
-	sim = min(sim,(float)substring_length/adapter_end);
-    }
-    else  if(adapter_end>=tlen)
-    {
-	sim = min(sim,(float)substring_length/(tlen-adapter_start));
-    }
-    else 
-    {
-	sim = min(sim,(float)substring_length/adapter1.length());
-    }
-
-    if(DEBUG>2)
-    {
-	cerr << "score = "<<r.score<<endl;
-	cerr << "similarity = "<<sim<<endl;	
-	cerr << "(r.tb,r.te) = ("<<r.tb<<","<<r.te<<")"<<endl;    	
-	cerr << "(q.tb,q.te) = ("<<r.qb<<","<<r.qe<<")"<<endl;    	
-    }
 
     if(r.tb==-1 || r.te==-1) //alignment failed?
     {
 	return tlen;
     }
-
-    if(sim<min_similarity) //too divergent
-    {
-	return tlen;
-    }
-
-    if( adapter_end<minoverlap || (tlen-adapter_start)<minoverlap )//edge overlap too small
-    {
-	return tlen;
-    }
-
     
-    return adapter_start;
+//    overlap too small.
+    if(adapter_start < minoverlap ||  (tlen-adapter_end)<minoverlap)
+    {
+	return tlen;
+    }
+    
+    if(adapter_start<0 || adapter_end>tlen)
+    {
+	if(r.score>=minoverlap)
+	{
+	    return(adapter_start);
+	}
+    }
+    if(r.score>=min_similarity)
+    {
+	return adapter_start;	
+    }    
+    return tlen;
 }
 
 uint8_t * string2char(string & s)

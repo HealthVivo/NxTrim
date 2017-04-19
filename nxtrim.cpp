@@ -32,7 +32,7 @@ void usage() {
   cerr << "  --ignorePF                      ignore chastity/purity filters in read headers"<<endl;
   cerr << "  --separate                      output paired reads in separate files (prefix_R1/prefix_r2). Default is interleaved."<<endl;
   cerr <<
-"  -s, --similarity arg (=0.85)    The minimum similarity between strings to be considered a match\n                                   For hamming:   ceiling( (1-similarity) * string_length )\n                                   For SW:        sw_score / min(target_alignment_length,query_alignment_length)"<<endl;
+"  -s, --similarity arg (=0.85)    The    similarity for strings to be considered a match\n                                   For hamming:   mismatch proportion must be greater than ceiling( (1-similarity) * string_length )\n                                   For SW:        alignment must have score greater than s "<<endl;
   cerr << "  -v, --minoverlap arg (=12       The minimum overlap to be considered for matching"<<endl;
   cerr << "  -l, --minlength arg (=21)       The minimum read length to output (smaller reads will be filtered)"<<endl;
   cerr << "  -w, --smith-waterman            Use Smith-Waterman alignmnent rather than simple Hamming matching"<<endl;
